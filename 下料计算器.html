@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>铁艺栏杆下料计算器</title>
+<style>
+  :root{
+    --bg:#f4f6f9; --card:#ffffff; --ink:#1f2937; --muted:#6b7280;
+    --line:#e5e7eb; --primary:#2563eb; --primary-d:#1d4ed8;
+    --accent:#d97706; --ok:#15803d; --bad:#dc2626; --soft:#eff6ff;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Microsoft YaHei","PingFang SC",system-ui,-apple-system,sans-serif;
+    font-size:15px;line-height:1.5;}
+  .wrap{max-width:980px;margin:0 auto;padding:20px 16px 60px;}
+  header.top{background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;
+    border-radius:14px;padding:22px 24px;margin-bottom:18px;box-shadow:0 6px 18px rgba(37,99,235,.18);}
+  header.top h1{margin:0 0 4px;font-size:22px;letter-spacing:1px;}
+  header.top p{margin:0;opacity:.9;font-size:13px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 18px;margin-bottom:16px;box-shadow:0 2px 6px rgba(0,0,0,.04);}
+  .card h2{margin:0 0 14px;font-size:16px;display:flex;align-items:center;gap:8px;}
+  .card h2 .tag{font-size:11px;background:var(--soft);color:var(--primary);
+    padding:2px 8px;border-radius:999px;font-weight:normal;}
+  .row{display:flex;flex-wrap:wrap;gap:14px;}
+  .field{flex:1 1 180px;min-width:150px;}
+  .field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px;}
+  .field input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;
+    font-size:15px;background:#fff;color:var(--ink);}
+  .field input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;}
+  table{width:100%;border-collapse:collapse;}
+  table.req th,table.req td{border:1px solid var(--line);padding:8px 8px;text-align:center;font-size:14px;}
+  table.req th{background:#f8fafc;color:var(--muted);font-weight:600;}
+  table.req input{width:100%;border:1px solid var(--line);border-radius:6px;padding:7px 6px;font-size:14px;text-align:center;}
+  table.req td.idx{color:var(--muted);}
+  .btn{cursor:pointer;border:none;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:600;
+    transition:.15s;font-family:inherit;}
+  .btn-primary{background:var(--primary);color:#fff;}
+  .btn-primary:hover{background:var(--primary-d);}
+  .btn-ghost{background:#fff;color:var(--primary);border:1px solid var(--primary);}
+  .btn-ghost:hover{background:var(--soft);}
+  .btn-sm{padding:5px 10px;font-size:13px;}
+  .btn-warn{background:#fff;color:var(--bad);border:1px solid #fca5a5;}
+  .btn-warn:hover{background:#fef2f2;}
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px;}
+  .spacer{flex:1;}
+  .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;}
+  .stat{background:var(--soft);border-radius:10px;padding:14px;}
+  .stat .k{font-size:12.5px;color:var(--muted);margin-bottom:6px;}
+  .stat .v{font-size:24px;font-weight:700;color:var(--primary);}
+  .stat .v small{font-size:13px;color:var(--muted);font-weight:500;}
+  .stat.green .v{color:var(--ok);}
+  .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:600;}
+  .badge.ok{background:#dcfce7;color:var(--ok);}
+  .badge.near{background:#fef3c7;color:#b45309;}
+  table.res th,table.res td{border:1px solid var(--line);padding:9px 10px;text-align:center;font-size:14px;vertical-align:middle;}
+  table.res th{background:#f8fafc;color:var(--muted);font-weight:600;}
+  table.res td.combo{text-align:left;}
+  .usage-bar{height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:4px;}
+  .usage-bar > span{display:block;height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);}
+  details.bars summary{cursor:pointer;font-weight:600;padding:6px 0;color:var(--primary);}
+  .barlist{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:8px;}
+  .baritem{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:14px;}
+  .baritem:nth-child(even){background:#fafbfc;}
+  .baritem .no{font-weight:700;color:var(--primary);min-width:42px;}
+  .baritem .desc{flex:1;}
+  .baritem .w{color:var(--muted);font-size:13px;min-width:90px;text-align:right;}
+  .baritem input[type=checkbox]{width:18px;height:18px;}
+  .msg{margin-top:10px;font-size:13.5px;padding:10px 12px;border-radius:8px;}
+  .msg.err{background:#fef2f2;color:var(--bad);border:1px solid #fecaca;}
+  .msg.ok{background:#f0fdf4;color:var(--ok);border:1px solid #bbf7d0;}
+  .export-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px;}
+  .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:24px;}
+  .empty{color:var(--muted);text-align:center;padding:18px;}
+  /* 打印区: 屏幕隐藏, 打印时只显示打印区 */
+  #printArea{display:none;}
+  @media print{
+    body *{visibility:hidden !important;}
+    #printArea,#printArea *{visibility:visible !important;}
+    #printArea{display:block !important;position:absolute;left:0;top:0;width:100%;padding:0 8mm;color:#000;}
+    .pbar{border:1px solid #000;padding:8px 12px;margin-bottom:8px;page-break-inside:avoid;}
+    .pbar .ph{font-weight:700;margin-bottom:4px;}
+    .prow{display:flex;justify-content:space-between;border-bottom:1px dotted #999;padding:5px 0;font-size:13px;}
+    table.ptable{width:100%;border-collapse:collapse;margin-top:6px;}
+    table.ptable th,table.ptable td{border:1px solid #000;padding:6px 8px;font-size:13px;text-align:center;}
+    table.ptable th{background:#eee;}
+    .tick{font-size:15px;margin-right:6px;}
+    h1.ph{font-size:18px;margin:0 0 2px;}
+    .psub{font-size:12px;color:#333;margin-bottom:10px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>铁艺栏杆下料计算器</h1>
+    <p>一维下料优化 · 用固定长度原料切出多种定长零件，求最少原料根数 · 离线可用</p>
+  </header>
+
+  <!-- 原料设置 -->
+  <div class="card">
+    <h2>① 原料设置 <span class="tag">基础参数</span></h2>
+    <div class="row">
+      <div class="field">
+        <label>原料长度（米）</label>
+        <input id="rawLen" type="number" value="6" min="0.1" step="0.1">
+      </div>
+      <div class="field">
+        <label>锯缝损耗（毫米 / 每刀）</label>
+        <input id="kerf" type="number" value="0" min="0" step="0.5">
+      </div>
+      <div class="field" style="flex:2 1 320px;">
+        <label>&nbsp;</label>
+        <div class="hint">锯缝 = 切割时锯片损耗。切成 k 段需 (k−1) 刀，系统自动从每根原料中扣减相应损耗。设为 0 表示不计损耗。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 需求清单 -->
+  <div class="card">
+    <h2>② 需求清单 <span class="tag">需要切出的零件</span></h2>
+    <table class="req" id="reqTable">
+      <thead>
+        <tr>
+          <th style="width:46px;">#</th>
+          <th>名称 / 规格</th>
+          <th style="width:130px;">单段长度（米）</th>
+          <th style="width:120px;">需要数量（根）</th>
+          <th style="width:70px;">操作</th>
+        </tr>
+      </thead>
+      <tbody id="reqBody"></tbody>
+    </table>
+    <div class="toolbar">
+      <button class="btn btn-ghost btn-sm" id="addRow">＋ 添加一行</button>
+      <button class="btn btn-warn btn-sm" id="clearRows">清空</button>
+      <button class="btn btn-ghost btn-sm" id="loadExample">载入示例</button>
+      <div class="spacer"></div>
+    </div>
+  </div>
+
+  <!-- 操作 -->
+  <div class="card">
+    <div class="toolbar" style="margin-top:0;">
+      <button class="btn btn-primary" id="calcBtn" style="font-size:16px;padding:12px 28px;">开始计算</button>
+      <div id="calcMsg"></div>
+    </div>
+  </div>
+
+  <!-- 结果 -->
+  <div id="resultWrap"></div>
+
+  <div class="foot">本工具在浏览器本地计算，数据不上传。算法：列生成 + 分支定界求整数最优解。</div>
+</div>
+
+<!-- 打印区（屏幕隐藏） -->
+<div id="printArea"></div>
+
+<script>
+/* ===================== 一维下料求解器 (纯 JS, 无依赖) ===================== */
+function solveLP(A, b, c) {
+  const m = A.length;
+  if (m === 0) return { status: 'optimal', x: new Array(c.length).fill(0), pi: [], obj: 0 };
+  const n = A[0].length;
+  const totalCols = n + 2 * m;
+  const T = []; const basis = [];
+  for (let i = 0; i < m; i++) {
+    const row = new Array(totalCols + 1).fill(0);
+    for (let j = 0; j < n; j++) row[j] = A[i][j];
+    row[n + i] = -1; row[n + m + i] = 1; row[totalCols] = b[i];
+    T.push(row); basis.push(n + m + i);
+  }
+  function makeCost(phase){const cost=new Array(totalCols).fill(0);
+    if(phase===1){for(let i=0;i<m;i++)cost[n+m+i]=1;}else{for(let j=0;j<n;j++)cost[j]=c[j];}return cost;}
+  function cB(cost){return basis.map(col=>cost[col]);}
+  function reducedCosts(cost){const cb=cB(cost);const rc=new Array(totalCols).fill(0);
+    for(let j=0;j<totalCols;j++){let s=0;for(let i=0;i<m;i++)s+=cb[i]*T[i][j];rc[j]=cost[j]-s;}return rc;}
+  function optimize(cost,allowArt){let iter=0;
+    while(true){iter++;if(iter>5000)return{status:'maxiter'};
+      const rc=reducedCosts(cost);let enter=-1,best=-1e-9;
+      for(let j=0;j<totalCols;j++){if(!allowArt&&j>=n+m)continue;if(rc[j]<best){best=rc[j];enter=j;}}
+      if(enter===-1)return{status:'optimal'};
+      let leave=-1,minRatio=Infinity;
+      for(let i=0;i<m;i++){const a=T[i][enter];if(a>1e-9){const r=T[i][totalCols]/a;
+        if(r<minRatio-1e-12||(Math.abs(r-minRatio)<1e-9&&leave>=0&&basis[i]<basis[leave])){minRatio=r;leave=i;}}}
+      if(leave===-1)return{status:'unbounded'};
+      const piv=T[leave][enter];
+      for(let j=0;j<=totalCols;j++)T[leave][j]/=piv;
+      for(let i=0;i<m;i++){if(i===leave)continue;const f=T[i][enter];if(Math.abs(f)<1e-12)continue;
+        for(let j=0;j<=totalCols;j++)T[i][j]-=f*T[leave][j];}
+      basis[leave]=enter;}}
+  let r1=optimize(makeCost(1),true);if(r1.status==='maxiter')return{status:'maxiter'};
+  for(let i=0;i<m;i++){if(basis[i]>=n+m&&T[i][totalCols]>1e-6)return{status:'infeasible'};}
+  let r2=optimize(makeCost(2),false);if(r2.status==='maxiter')return{status:'maxiter'};
+  if(r2.status==='unbounded')return{status:'unbounded'};
+  const x=new Array(n).fill(0);
+  for(let i=0;i<m;i++){const col=basis[i];if(col<n)x[col]=T[i][totalCols];}
+  let obj=0;for(let j=0;j<n;j++)obj+=c[j]*x[j];
+  const rc=reducedCosts(makeCost(2));const pi=new Array(m).fill(0);
+  for(let i=0;i<m;i++)pi[i]=rc[n+i];
+  return{status:'optimal',x,pi,obj};
+}
+function knapsack(values,weights,capacity,maxPer){
+  const n=values.length;const INF=-1e18;const dp=new Array(capacity+1).fill(INF);dp[0]=0;
+  const parent=new Array(capacity+1).fill(-1);const usedItem=new Array(capacity+1).fill(-1);
+  for(let i=0;i<n;i++){const wt=weights[i],val=values[i],mx=maxPer[i];const count=new Array(capacity+1).fill(0);
+    for(let w=wt;w<=capacity;w++){if(count[w-wt]<mx&&dp[w-wt]+val>dp[w]){dp[w]=dp[w-wt]+val;parent[w]=w-wt;usedItem[w]=i;count[w]=count[w-wt]+1;}}}
+  let bestW=0;for(let w=0;w<=capacity;w++)if(dp[w]>dp[bestW])bestW=w;
+  if(dp[bestW]<=0)return{value:0,a:new Array(n).fill(0)};
+  const a=new Array(n).fill(0);let w=bestW;
+  while(w>0&&usedItem[w]!==-1){a[usedItem[w]]++;w=parent[w];}
+  return{value:dp[bestW],a};
+}
+function solveCuttingStock(items,L,kerf,opts){
+  opts=opts||{};const m=items.length;
+  if(m===0)return{bars:0,patterns:[],utilization:0,lowerBound:0,optimal:true,note:'无需求'};
+  const d=items.map(it=>Math.round(it.qty));const lens=items.map(it=>it.len);
+  const cap=L+kerf;const w=lens.map(l=>l+kerf);const maxPer=w.map(wi=>Math.floor(cap/wi));
+  const ENUM_CAP=30000;let patterns=[];
+  let totalEst=1;for(const mp of maxPer)totalEst*=(mp+1);
+  const enumMode=totalEst<=ENUM_CAP;
+  if(enumMode){const cur=new Array(m).fill(0);
+    function rec(idx){if(idx===m){let sum=0,cnt=0;for(let i=0;i<m;i++){sum+=cur[i]*(lens[i]+kerf);cnt+=cur[i];}
+      if(sum<=cap+1e-9&&cnt>=1)patterns.push(cur.slice());return;}
+      for(let a=0;a<=maxPer[idx];a++){cur[idx]=a;rec(idx+1);}}
+    rec(0);
+  }else{
+    for(let i=0;i<m;i++){const a=new Array(m).fill(0);a[i]=Math.max(1,maxPer[i]);patterns.push(a);}
+    for(let iter=0;iter<300;iter++){const P=patterns.length;const Amat=[];
+      for(let i=0;i<m;i++){const row=[];for(let p=0;p<P;p++)row.push(patterns[p][i]);Amat.push(row);}
+      const c=new Array(P).fill(1);const res=solveLP(Amat,d,c);if(res.status!=='optimal')break;
+      const SCALE=1000;const wScaled=w.map(x=>Math.round(x*SCALE));const capScaled=Math.round(cap*SCALE);
+      const maxPerScaled=wScaled.map(wi=>Math.floor(capScaled/wi));
+      const best=knapsack(res.pi,wScaled,capScaled,maxPerScaled);const rcNew=1-best.value;
+      if(rcNew>=-1e-9)break;patterns.push(best.a);}}
+  function buildA(cols){const A=[];for(let i=0;i<m;i++){const row=[];for(const p of cols)row.push(patterns[p][i]);A.push(row);}return A;}
+  function hasPattern(a){for(const pat of patterns){let same=true;for(let i=0;i<m;i++)if(pat[i]!==a[i]){same=false;break;}if(same)return true;}return false;}
+  const allCols=[];for(let p=0;p<patterns.length;p++)allCols.push(p);
+  const lp=solveLP(buildA(allCols),d,new Array(patterns.length).fill(1));
+  const lowerBound=Math.ceil((lp.obj||0)-1e-9);
+  const initX=lp.x.map(v=>Math.ceil(v-1e-9));let bestUB=initX.reduce((s,v)=>s+v,0);let bestX=initX.slice();
+  function rebuild(fixed,rxx,remainCols){const arr=new Array(patterns.length).fill(0);
+    for(const k in fixed)arr[k]=fixed[k];
+    if(rxx)for(let k=0;k<remainCols.length;k++)arr[remainCols[k]]=Math.round(rxx[k]);return arr;}
+  const POOL_CAP=6000;const SCALE=1000;const wScaled=w.map(x=>Math.round(x*SCALE));
+  const capScaled=Math.round(cap*SCALE);const maxPerScaled=wScaled.map(wi=>Math.floor(capScaled/wi));
+  let nodes=0;const MAXNODES=800000;const TIME=8000;const start=Date.now();let exact=true;
+  function dfs(fixed){
+    if(nodes++>MAXNODES||(Date.now()-start)>TIME){exact=false;return;}
+    const rem=d.slice();let fixedSum=0;const remainCols=[];
+    for(let p=0;p<patterns.length;p++){if(fixed[p]!==undefined){fixedSum+=fixed[p];
+      for(let i=0;i<m;i++)rem[i]-=patterns[p][i]*fixed[p];}else remainCols.push(p);}
+    for(let i=0;i<m;i++)if(rem[i]<0)rem[i]=0;
+    if(rem.every(v=>v<=1e-9)){if(fixedSum<bestUB){bestUB=fixedSum;bestX=rebuild(fixed,null,[]);}return;}
+    let r=solveLP(buildA(remainCols),rem,new Array(remainCols.length).fill(1));
+    if(!r||r.status!=='optimal')return;
+    let nodeUB=fixedSum;for(let k=0;k<remainCols.length;k++)nodeUB+=Math.ceil(r.x[k]-1e-9);
+    if(nodeUB<bestUB){bestUB=nodeUB;bestX=rebuild(fixed,r.x.map(v=>Math.ceil(v-1e-9)),remainCols);}
+    let nodeLB;
+    if(enumMode){nodeLB=fixedSum+Math.ceil(r.obj-1e-9);}
+    else{for(let pr=0;pr<60;pr++){const best=knapsack(r.pi,wScaled,capScaled,maxPerScaled);const rcNew=1-best.value;
+        if(rcNew>=-1e-9)break;if(hasPattern(best.a))break;if(patterns.length>=POOL_CAP)break;
+        patterns.push(best.a);bestX.push(0);remainCols.push(patterns.length-1);
+        r=solveLP(buildA(remainCols),rem,new Array(remainCols.length).fill(1));if(r.status!=='optimal')break;}
+      const finalBest=knapsack(r.pi,wScaled,capScaled,maxPerScaled);const rcFinal=1-finalBest.value;
+      if(rcFinal>=-1e-9)nodeLB=fixedSum+r.obj;else nodeLB=fixedSum;}
+    if(nodeLB>=bestUB-1e-9)return;
+    let frac=-1,fracIdx=-1,fracPart=1e-6;
+    for(let k=0;k<remainCols.length;k++){const v=r.x[k];const fr=v-Math.floor(v);if(fr>fracPart){fracPart=fr;frac=remainCols[k];fracIdx=k;}}
+    if(frac===-1)return;
+    const rv=r.x[fracIdx];const f1=Math.floor(rv),f2=Math.ceil(rv);
+    const f2o=Object.assign({},fixed);f2o[frac]=f2;dfs(f2o);
+    const f1o=Object.assign({},fixed);f1o[frac]=f1;dfs(f1o);}
+  dfs({});
+  if(nodes>MAXNODES||(Date.now()-start)>TIME)exact=false;
+  const result=[];let usedBars=0;
+  for(let p=0;p<patterns.length;p++){const cnt=Math.round(bestX[p]);if(cnt<=0)continue;
+    const a=patterns[p];let pieces=0,lenSum=0;for(let i=0;i<m;i++){pieces+=a[i];lenSum+=a[i]*lens[i];}
+    const waste=L-(lenSum+Math.max(0,pieces-1)*kerf);usedBars+=cnt;
+    result.push({combo:a,count:cnt,pieces,lenSum,waste:Math.max(0,waste)});}
+  const demandLen=d.reduce((s,q,i)=>s+q*lens[i],0);
+  const utilization=usedBars*L>0?demandLen/(usedBars*L):0;
+  return{bars:usedBars,patterns:result,utilization,lowerBound,optimal:exact,
+    note:exact?'':'规模较大, 在时间限制内求得近最优解(已接近理论下界)'};
+}
+
+/* ===================== 纯 JS 生成 .xlsx (无依赖) ===================== */
+function crc32(buf){let table=crc32.table;if(!table){table=[];for(let n=0;n<256;n++){let c=n;
+  for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);table[n]=c>>>0;}crc32.table=table;}
+  let crc=0xFFFFFFFF;for(let i=0;i<buf.length;i++)crc=(crc>>>8)^table[(crc^buf[i])&0xFF];return(crc^0xFFFFFFFF)>>>0;}
+function zipStore(files){const enc=new TextEncoder();const chunks=[];const central=[];let offset=0;
+  for(const f of files){const nameBytes=enc.encode(f.name);const data=f.data;const crc=crc32(data);
+    const lh=new Uint8Array(30+nameBytes.length);const dv=new DataView(lh.buffer);
+    dv.setUint32(0,0x04034b50,true);dv.setUint16(4,20,true);dv.setUint16(6,0,true);dv.setUint16(8,0,true);
+    dv.setUint16(10,0,true);dv.setUint16(12,0,true);dv.setUint32(14,crc,true);
+    dv.setUint32(18,data.length,true);dv.setUint32(22,data.length,true);dv.setUint16(26,nameBytes.length,true);dv.setUint16(28,0,true);
+    lh.set(nameBytes,30);chunks.push(lh);chunks.push(data);
+    const cd=new Uint8Array(46+nameBytes.length);const cdv=new DataView(cd.buffer);
+    cdv.setUint32(0,0x02014b50,true);cdv.setUint16(4,20,true);cdv.setUint16(6,20,true);cdv.setUint16(8,0,true);
+    cdv.setUint16(10,0,true);cdv.setUint16(12,0,true);cdv.setUint32(16,crc,true);
+    cdv.setUint32(20,data.length,true);cdv.setUint32(24,data.length,true);cdv.setUint16(28,nameBytes.length,true);
+    cdv.setUint16(30,0,true);cdv.setUint16(32,0,true);cdv.setUint16(34,0,true);cdv.setUint16(36,0,true);cdv.setUint32(38,0,true);cdv.setUint32(42,offset,true);
+    cd.set(nameBytes,46);central.push(cd);offset+=lh.length+data.length;}
+  const centralSize=central.reduce((s,c)=>s+c.length,0);
+  const end=new Uint8Array(22);const edv=new DataView(end.buffer);
+  edv.setUint32(0,0x06054b50,true);edv.setUint16(4,0,true);edv.setUint16(6,0,true);
+  edv.setUint16(8,files.length,true);edv.setUint16(10,files.length,true);edv.setUint32(12,centralSize,true);edv.setUint32(16,offset,true);edv.setUint16(20,0,true);
+  const out=chunks.concat(central,[end]);let total=out.reduce((s,c)=>s+c.length,0);
+  const result=new Uint8Array(total);let pos=0;for(const c of out){result.set(c,pos);pos+=c.length;}return result;}
+function xmlEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function colLetter(n){let s='';n++;while(n>0){const r=(n-1)%26;s=String.fromCharCode(65+r)+s;n=Math.floor((n-1)/26);}return s;}
+function makeXlsx(sheetName,matrix){const enc=new TextEncoder();let rowsXml='';
+  matrix.forEach((row,r)=>{let cells='';row.forEach((cell,c)=>{const ref=colLetter(c)+(r+1);
+    if(typeof cell==='number')cells+=`<c r="${ref}"><v>${cell}</v></c>`;
+    else cells+=`<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(cell)}</t></is></c>`;});
+    rowsXml+=`<row r="${r+1}">${cells}</row>`;});
+  const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rowsXml}</sheetData></worksheet>`;
+  const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`;
+  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${xmlEsc(sheetName)}" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+  const wbrels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`;
+  const files=[{name:'[Content_Types].xml',data:enc.encode(ct)},{name:'_rels/.rels',data:enc.encode(rels)},
+    {name:'xl/workbook.xml',data:enc.encode(wb)},{name:'xl/_rels/workbook.xml.rels',data:enc.encode(wbrels)},
+    {name:'xl/worksheets/sheet1.xml',data:enc.encode(sheet)}];
+  return zipStore(files);}
+function downloadBlob(blob,filename){const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),2000);}
+
+/* ===================== 界面逻辑 ===================== */
+const EXAMPLE=[
+  {name:'1.3m',len:1.3,qty:60},
+  {name:'0.9m',len:0.9,qty:122},
+  {name:'0.24m',len:0.24,qty:521}
+];
+let rows=EXAMPLE.map(r=>({...r}));
+let lastResult=null;
+
+function renderRows(){
+  const tb=document.getElementById('reqBody');tb.innerHTML='';
+  rows.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="idx">${i+1}</td>
+      <td><input data-i="${i}" data-k="name" value="${r.name.replace(/"/g,'&quot;')}" placeholder="如 立柱/横杆"></td>
+      <td><input data-i="${i}" data-k="len" type="number" min="0" step="0.01" value="${r.len}"></td>
+      <td><input data-i="${i}" data-k="qty" type="number" min="0" step="1" value="${r.qty}"></td>
+      <td><button class="btn btn-warn btn-sm" data-del="${i}">删除</button></td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input',e=>{
+      const i=+e.target.dataset.i,k=e.target.dataset.k;
+      if(k==='len')rows[i].len=parseFloat(e.target.value)||0;
+      else if(k==='qty')rows[i].qty=parseInt(e.target.value)||0;
+      else rows[i].name=e.target.value;
+    });
+  });
+  tb.querySelectorAll('button[data-del]').forEach(b=>{
+    b.addEventListener('click',e=>{rows.splice(+e.target.dataset.del,1);renderRows();});
+  });
+}
+function setMsg(text,type){const el=document.getElementById('calcMsg');
+  el.innerHTML=text?`<div class="msg ${type}">${text}</div>`:'';}
+
+function comboText(combo,items,sep){
+  sep=sep||'  +  ';
+  const parts=[];
+  for(let i=0;i<items.length;i++){if(combo[i]>0){
+    const nm=items[i].name&&String(items[i].name).trim()?items[i].name:(items[i].len+'m');
+    parts.push(`${combo[i]}×${nm}`);}}
+  return parts.join(sep)||'—';
+}
+
+function calculate(){
+  const L=parseFloat(document.getElementById('rawLen').value);
+  const kerfMM=parseFloat(document.getElementById('kerf').value)||0;
+  const kerf=kerfMM/1000;
+  if(!(L>0)){setMsg('请输入有效的原料长度（大于 0）','err');return;}
+  const items=[];
+  for(let i=0;i<rows.length;i++){const r=rows[i];
+    const len=parseFloat(r.len),qty=parseInt(r.qty);
+    if(!(len>0)){setMsg(`第 ${i+1} 行长度无效，请检查`,'err');return;}
+    if(len>L){setMsg(`第 ${i+1} 行长度 ${len}m 超过原料长度 ${L}m，无法在一根内切出`,'err');return;}
+    if(!(qty>0)){setMsg(`第 ${i+1} 行数量无效（需 ≥ 1）`,'err');return;}
+    items.push({name:r.name||'',len,qty});}
+  if(items.length===0){setMsg('请至少填写一行需求','err');return;}
+  setMsg('计算中…','ok');
+  const btn=document.getElementById('calcBtn');btn.disabled=true;
+  setTimeout(()=>{
+    const t0=Date.now();
+    const res=solveCuttingStock(items,L,kerf);
+    const ms=Date.now()-t0;
+    btn.disabled=false;
+    lastResult={res,items,L,kerf};
+    if(res.bars<=0){setMsg('未求得可行方案，请检查输入','err');document.getElementById('resultWrap').innerHTML='';return;}
+    setMsg(`计算完成（${ms}ms，${res.optimal?'已验证最优':'近最优'}）`,'ok');
+    renderResult(res,items,L,kerf);
+  },20);
+}
+
+function renderResult(res,items,L,kerf){
+  const pct=(res.utilization*100);
+  const statusBadge=res.optimal
+    ? '<span class="badge ok">✓ 已验证整数最优</span>'
+    : '<span class="badge near">≈ 近最优（接近理论下界）</span>';
+  let html=`<div class="card"><h2>③ 结果汇总 <span class="tag">结论</span></h2>
+    <div class="summary">
+      <div class="stat"><div class="k">最少需要原料</div><div class="v">${res.bars}<small> 根</small></div></div>
+      <div class="stat"><div class="k">原料长度</div><div class="v">${L}<small> m</small></div></div>
+      <div class="stat green"><div class="k">材料利用率</div><div class="v">${pct.toFixed(1)}<small> %</small></div>
+        <div class="usage-bar"><span style="width:${Math.min(100,pct).toFixed(1)}%"></span></div></div>
+      <div class="stat"><div class="k">理论下界</div><div class="v">${res.lowerBound}<small> 根</small></div></div>
+    </div>
+    <div style="margin-top:12px;">求解状态：${statusBadge}${res.note?` <span class="hint">（${res.note}）</span>`:''}</div>
+  </div>`;
+
+  // 方案表
+  html+=`<div class="card"><h2>④ 最优裁剪方案 <span class="tag">按方案套裁</span></h2>
+    <table class="res"><thead><tr>
+      <th style="width:50px;">#</th><th class="combo">组合方式（每根钢管切法）</th>
+      <th style="width:90px;">套用根数</th><th style="width:90px;">本段废料</th><th style="width:100px;">合计用料</th></tr></thead><tbody>`;
+  res.patterns.forEach((p,i)=>{
+    html+=`<tr><td>${i+1}</td><td class="combo">${comboText(p.combo,items)}</td>
+      <td><b>${p.count}</b></td><td>${p.waste.toFixed(3)} m</td><td>${(p.lenSum).toFixed(2)} m</td></tr>`;
+  });
+  html+=`</tbody></table>
+    <div class="hint" style="margin-top:8px;">说明：按上表“套用根数”准备原料即可满足全部需求；废料为每根钢管切完后剩余长度（已扣锯缝）。</div>
+  </div>`;
+
+  // 逐根编号清单（可展开，带勾选）
+  html+=`<div class="card"><details class="bars" open>
+    <summary>⑤ 逐根编号清单（点击展开/收起，可勾选已切）</summary>
+    <div class="barlist" id="barList"></div>
+    <div class="hint" style="margin-top:8px;">共 ${res.bars} 根钢管。每根按编号对应一种切法，车间可逐根照单下料。</div>
+  </details></div>`;
+
+  // 导出
+  html+=`<div class="card"><h2>⑥ 导出 / 打印 <span class="tag">交付</span></h2>
+    <div class="export-row">
+      <button class="btn btn-primary" id="expExcel">导出 Excel（.xlsx）</button>
+      <button class="btn btn-ghost" id="expList">打印下料单</button>
+      <button class="btn btn-ghost" id="expReport">导出 PDF 报告</button>
+    </div>
+    <div class="hint" style="margin-top:8px;">Excel 为真实 .xlsx 文件，离线生成；PDF 报告用浏览器“另存为 PDF”即可；打印下料单为车间专用逐根清单。</div>
+  </div>`;
+
+  document.getElementById('resultWrap').innerHTML=html;
+
+  // 渲染逐根清单
+  const bl=document.getElementById('barList');
+  let idx=0;let barHtml='';
+  res.patterns.forEach(p=>{
+    for(let c=0;c<p.count;c++){idx++;
+      barHtml+=`<div class="baritem"><span class="no">#${idx}</span>
+        <span class="desc">${comboText(p.combo,items,' + ')}</span>
+        <span class="w">废料 ${p.waste.toFixed(3)}m</span>
+        <input type="checkbox" title="标记已切"></div>`;
+    }
+  });
+  if(idx===0)barHtml='<div class="empty">无数据</div>';
+  bl.innerHTML=barHtml;
+
+  // 绑定导出
+  document.getElementById('expExcel').addEventListener('click',exportExcel);
+  document.getElementById('expList').addEventListener('click',()=>printArea('list'));
+  document.getElementById('expReport').addEventListener('click',()=>printArea('report'));
+}
+
+function exportExcel(){
+  if(!lastResult)return;
+  const {res,items,L,kerf}=lastResult;
+  const matrix=[];
+  matrix.push(['铁艺栏杆下料方案']);
+  matrix.push(['原料长度(米)',L,'锯缝损耗(毫米)',(kerf*1000)]);
+  matrix.push(['最少需要原料(根)',res.bars,'材料利用率(%)',+(res.utilization*100).toFixed(1)]);
+  matrix.push(['理论下界(根)',res.lowerBound,'求解状态',res.optimal?'已验证最优':'近最优']);
+  matrix.push([]);
+  matrix.push(['方案','组合方式','套用根数','本段废料(米)','合计用料(米)']);
+  res.patterns.forEach((p,i)=>{
+    matrix.push([i+1,comboText(p.combo,items,' + '),p.count,+p.waste.toFixed(3),+p.lenSum.toFixed(2)]);
+  });
+  matrix.push([]);
+  matrix.push(['逐根编号清单']);
+  matrix.push(['编号','切法内容','废料(米)']);
+  let idx=0;
+  res.patterns.forEach(p=>{for(let c=0;c<p.count;c++){idx++;
+    matrix.push([idx,comboText(p.combo,items,' + '),+p.waste.toFixed(3)]);}});
+  const u8=makeXlsx('下料方案',matrix);
+  downloadBlob(new Blob([u8],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'下料方案.xlsx');
+}
+
+function printArea(mode){
+  if(!lastResult)return;
+  const {res,items,L,kerf}=lastResult;
+  const pa=document.getElementById('printArea');
+  const now=new Date().toLocaleString('zh-CN');
+  let h=`<h1 class="ph">铁艺栏杆下料单</h1>
+    <div class="psub">原料 ${L}m / 锯缝 ${(kerf*1000)}mm · 生成时间 ${now} · 最少需要 <b>${res.bars}</b> 根 · 利用率 ${(res.utilization*100).toFixed(1)}%</div>`;
+  if(mode==='report'){
+    h+=`<div class="pbar"><div class="ph">一、裁剪方案汇总</div>
+      <table class="ptable"><thead><tr><th>#</th><th>组合方式</th><th>根数</th><th>废料(m)</th><th>用料(m)</th></tr></thead><tbody>`;
+    res.patterns.forEach((p,i)=>{h+=`<tr><td>${i+1}</td><td style="text-align:left">${comboText(p.combo,items,' + ')}</td><td>${p.count}</td><td>${p.waste.toFixed(3)}</td><td>${p.lenSum.toFixed(2)}</td></tr>`;});
+    h+=`</tbody></table></div>`;
+  }
+  // 逐根清单
+  h+=`<div class="pbar"><div class="ph">${mode==='list'?'逐根下料清单（车间专用）':'二、逐根编号清单'}</div>`;
+  let idx=0;
+  res.patterns.forEach(p=>{for(let c=0;c<p.count;c++){idx++;
+    h+=`<div class="prow"><span><span class="tick">☐</span><b>钢管 #${idx}</b>　${comboText(p.combo,items,' ＋ ')}</span><span>废料 ${p.waste.toFixed(3)}m</span></div>`;}});
+  if(idx===0)h+='<div class="prow"><span>无数据</span></div>';
+  h+=`</div>`;
+  pa.innerHTML=h;
+  window.print();
+}
+
+/* 初始化 */
+document.getElementById('addRow').addEventListener('click',()=>{rows.push({name:'',len:0,qty:0});renderRows();});
+document.getElementById('clearRows').addEventListener('click',()=>{rows=[];renderRows();});
+document.getElementById('loadExample').addEventListener('click',()=>{rows=EXAMPLE.map(r=>({...r}));renderRows();});
+document.getElementById('calcBtn').addEventListener('click',calculate);
+renderRows();
+</script>
+</body>
+</html>
