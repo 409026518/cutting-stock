@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2563eb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+
 <title>铁艺栏杆下料计算器</title>
 <style>
   :root{
@@ -522,6 +529,9 @@ document.getElementById('clearRows').addEventListener('click',()=>{rows=[];rende
 document.getElementById('loadExample').addEventListener('click',()=>{rows=EXAMPLE.map(r=>({...r}));renderRows();});
 document.getElementById('calcBtn').addEventListener('click',calculate);
 renderRows();
+</script>
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(e){console.log('SW 注册失败:',e);});});}
 </script>
 </body>
 </html>

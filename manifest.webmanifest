@@ -1,0 +1,16 @@
+{
+  "name": "铁艺栏杆下料计算器",
+  "short_name": "下料计算",
+  "description": "一维下料优化工具 - 铁艺栏杆管材下料计算器，离线可用",
+  "start_url": "index.html",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#f4f6f9",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
